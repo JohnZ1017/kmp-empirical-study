@@ -66,7 +66,7 @@ double median(std::vector<double> values) {
     return values[middle];
 }
 
-// Benchmark random text and a random pattern.
+// Experiment 1: Random text, fixed pattern length.
 void runRandomBenchmark() {
     std::mt19937 rng(12345);
 
@@ -134,7 +134,7 @@ void runRandomBenchmark() {
     std::cout << "Results saved to benchmarks/random_results.csv\n";
 }
 
-// Benchmark a repetitive input designed to be difficult for naive search.
+// Experiment 2: Adversarial text, fixed pattern length.
 void runAdversarialBenchmark() {
     std::ofstream csv("benchmarks/adversarial_results.csv");
 
@@ -192,7 +192,7 @@ void runAdversarialBenchmark() {
         const double naiveMedian = median(naiveTimes);
         const double kmpMedian = median(kmpTimes);
 
-        // Count comparisons separately from the timing measurements.
+        // Count comparisons separately from timing measurements.
         const auto naiveStats =
             naiveSearchWithStats(text, adversarialPattern);
 
@@ -224,10 +224,99 @@ void runAdversarialBenchmark() {
         << "Results saved to benchmarks/adversarial_results.csv\n";
 }
 
+// Experiment 3: Adversarial text, increasing pattern length.
+void runPatternLengthBenchmark() {
+    std::ofstream csv("benchmarks/pattern_length_results.csv");
+
+    if (!csv) {
+        throw std::runtime_error("Could not open pattern-length results CSV");
+    }
+
+    csv << "text_length,pattern_length,naive_us,kmp_us,"
+           "naive_comparisons,kmp_comparisons\n";
+
+    const std::size_t textLength = 100000;
+    const std::vector<std::size_t> patternLengths = {
+        10, 20, 40, 80, 160, 320, 640
+    };
+    const int repetitions = 15;
+
+    // The text contains only 'a' characters.
+    const std::string text(textLength, 'a');
+
+    for (std::size_t m : patternLengths) {
+        // The pattern almost matches, but its final character is 'b'.
+        const std::string pattern =
+            std::string(m - 1, 'a') + 'b';
+
+        // Check correctness before measuring.
+        if (naiveSearch(text, pattern) != kmpSearch(text, pattern)) {
+            throw std::runtime_error("Search implementations disagree");
+        }
+
+        std::vector<double> naiveTimes;
+        std::vector<double> kmpTimes;
+
+        for (int repetition = 0; repetition < repetitions; ++repetition) {
+            if (repetition % 2 == 0) {
+                naiveTimes.push_back(
+                    measureSearch(naiveSearch, text, pattern)
+                );
+
+                kmpTimes.push_back(
+                    measureSearch(kmpSearch, text, pattern)
+                );
+            } else {
+                kmpTimes.push_back(
+                    measureSearch(kmpSearch, text, pattern)
+                );
+
+                naiveTimes.push_back(
+                    measureSearch(naiveSearch, text, pattern)
+                );
+            }
+        }
+
+        const double naiveMedian = median(naiveTimes);
+        const double kmpMedian = median(kmpTimes);
+
+        // Count comparisons separately from timing measurements.
+        const auto naiveStats =
+            naiveSearchWithStats(text, pattern);
+
+        const auto kmpStats =
+            kmpSearchWithStats(text, pattern);
+
+        if (naiveStats.matches != kmpStats.matches) {
+            throw std::runtime_error("Instrumented searches disagree");
+        }
+
+        csv << textLength << ','
+            << m << ','
+            << naiveMedian << ','
+            << kmpMedian << ','
+            << naiveStats.comparisons << ','
+            << kmpStats.comparisons << '\n';
+
+        std::cout << "Pattern length m = " << m
+                  << " | naive = " << naiveMedian << " us"
+                  << " | KMP = " << kmpMedian << " us\n";
+
+        std::cout << "Comparisons | naive = "
+                  << naiveStats.comparisons
+                  << " | KMP = "
+                  << kmpStats.comparisons << '\n';
+    }
+
+    std::cout
+        << "Results saved to benchmarks/pattern_length_results.csv\n";
+}
+
 int main() {
     try {
         runRandomBenchmark();
         runAdversarialBenchmark();
+        runPatternLengthBenchmark();
 
         std::cout << "All benchmarks completed.\n";
     } catch (const std::exception& error) {
