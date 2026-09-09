@@ -76,7 +76,7 @@ void testKMPSearch() {
 }
 
 void testRandomizedSearches() {
-    std::mt19937 rng(12345); // Fixed seed makes tests reproducible.
+    std::mt19937 rng(12345); // Fixed seed for reproducibility.
 
     std::uniform_int_distribution<int> textLength(0, 100);
     std::uniform_int_distribution<int> patternLength(0, 20);
