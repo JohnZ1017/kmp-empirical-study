@@ -1,4 +1,5 @@
 #include "../src/naive.hpp"
+#include "../src/instrumented.hpp"
 
 #include <random>
 #include <stdexcept>
@@ -111,10 +112,44 @@ void testRandomizedSearches() {
     std::cout << "All randomized search tests passed!\n";
 }
 
+void testInstrumentedSearches() {
+    const std::vector<std::string> texts = {
+        "ababcabc",
+        "aaaaa",
+        "abcdef",
+        "",
+        "ABABABABC"
+    };
+
+    const std::vector<std::string> patterns = {
+        "abc",
+        "aa",
+        "xyz",
+        "",
+        "ABABC"
+    };
+
+    for (const auto& text : texts) {
+        for (const auto& pattern : patterns) {
+            const auto naiveStats =
+                naiveSearchWithStats(text, pattern);
+
+            const auto kmpStats =
+                kmpSearchWithStats(text, pattern);
+
+            assert(naiveStats.matches == naiveSearch(text, pattern));
+            assert(kmpStats.matches == kmpSearch(text, pattern));
+        }
+    }
+
+    std::cout << "All instrumented search tests passed!\n";
+}
+
 int main() {
     testNaiveSearch();
     testLPS();
     testKMPSearch();
     testRandomizedSearches();
+    testInstrumentedSearches();
     return 0;
 }
