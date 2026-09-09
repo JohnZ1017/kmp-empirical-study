@@ -1,5 +1,7 @@
 #include "../src/naive.hpp"
 
+#include <random>
+#include <stdexcept>
 #include <cassert>
 #include <iostream>
 #include <string>
@@ -73,9 +75,46 @@ void testKMPSearch() {
     std::cout << "All KMP search tests passed!\n";
 }
 
+void testRandomizedSearches() {
+    std::mt19937 rng(12345); // Fixed seed makes tests reproducible.
+
+    std::uniform_int_distribution<int> textLength(0, 100);
+    std::uniform_int_distribution<int> patternLength(0, 20);
+    std::uniform_int_distribution<int> character(0, 3);
+
+    for (int test = 0; test < 1000; ++test) {
+        std::string text;
+        std::string pattern;
+
+        int n = textLength(rng);
+        int m = patternLength(rng);
+
+        for (int i = 0; i < n; ++i) {
+            text += static_cast<char>('a' + character(rng));
+        }
+
+        for (int i = 0; i < m; ++i) {
+            pattern += static_cast<char>('a' + character(rng));
+        }
+
+        const auto naive = naiveSearch(text, pattern);
+        const auto kmp = kmpSearch(text, pattern);
+
+        if (naive != kmp) {
+            throw std::runtime_error(
+                "KMP and naive search disagree on test " +
+                std::to_string(test)
+            );
+        }
+    }
+
+    std::cout << "All randomized search tests passed!\n";
+}
+
 int main() {
     testNaiveSearch();
     testLPS();
     testKMPSearch();
+    testRandomizedSearches();
     return 0;
 }
