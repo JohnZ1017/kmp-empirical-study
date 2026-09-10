@@ -120,11 +120,12 @@ def plot_comparisons():
     plt.plot(lengths, kmp, marker="o", label="KMP")
 
     plt.xlabel("Pattern length")
-    plt.ylabel("Character comparisons")
+    plt.ylabel("Character comparisons (log scale)")
     plt.title("Character Comparisons as Pattern Length Increases")
     plt.legend()
     plt.grid(True)
 
+    plt.yscale("log")
     plt.tight_layout()
     plt.savefig("plots/pattern_length_comparisons.png", dpi=300)
     plt.close()
