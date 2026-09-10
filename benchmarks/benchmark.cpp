@@ -76,62 +76,117 @@ void runRandomBenchmark() {
         throw std::runtime_error("Could not open random results CSV");
     }
 
-    csv << "text_length,pattern_length,naive_us,kmp_us\n";
+    csv << "text_length,pattern_length,input_id,"
+           "naive_us,kmp_us,"
+           "naive_comparisons,kmp_comparisons\n";
 
     const std::vector<std::size_t> textLengths = {
         1000, 5000, 10000, 50000, 100000, 500000
     };
 
     const std::size_t patternLength = 20;
+
+    // Number of different random text/pattern pairs per size.
+    const int inputCount = 10;
+
+    // Number of timing repetitions for each random input.
     const int repetitions = 15;
 
     for (std::size_t n : textLengths) {
-        const std::string text = randomString(n, rng);
-        const std::string pattern = randomString(patternLength, rng);
+        for (int inputId = 0; inputId < inputCount; ++inputId) {
+            const std::string text = randomString(n, rng);
+            const std::string pattern =
+                randomString(patternLength, rng);
 
-        // Check correctness before measuring.
-        if (naiveSearch(text, pattern) != kmpSearch(text, pattern)) {
-            throw std::runtime_error("Search implementations disagree");
-        }
-
-        std::vector<double> naiveTimes;
-        std::vector<double> kmpTimes;
-
-        for (int repetition = 0; repetition < repetitions; ++repetition) {
-            // Alternate measurement order to reduce ordering bias.
-            if (repetition % 2 == 0) {
-                naiveTimes.push_back(
-                    measureSearch(naiveSearch, text, pattern)
-                );
-
-                kmpTimes.push_back(
-                    measureSearch(kmpSearch, text, pattern)
-                );
-            } else {
-                kmpTimes.push_back(
-                    measureSearch(kmpSearch, text, pattern)
-                );
-
-                naiveTimes.push_back(
-                    measureSearch(naiveSearch, text, pattern)
+            // Check correctness before measuring.
+            if (naiveSearch(text, pattern) !=
+                kmpSearch(text, pattern)) {
+                throw std::runtime_error(
+                    "Search implementations disagree"
                 );
             }
+
+            std::vector<double> naiveTimes;
+            std::vector<double> kmpTimes;
+
+            for (int repetition = 0;
+                 repetition < repetitions;
+                 ++repetition) {
+
+                // Alternate order to reduce ordering bias.
+                if (repetition % 2 == 0) {
+                    naiveTimes.push_back(
+                        measureSearch(
+                            naiveSearch,
+                            text,
+                            pattern
+                        )
+                    );
+
+                    kmpTimes.push_back(
+                        measureSearch(
+                            kmpSearch,
+                            text,
+                            pattern
+                        )
+                    );
+                } else {
+                    kmpTimes.push_back(
+                        measureSearch(
+                            kmpSearch,
+                            text,
+                            pattern
+                        )
+                    );
+
+                    naiveTimes.push_back(
+                        measureSearch(
+                            naiveSearch,
+                            text,
+                            pattern
+                        )
+                    );
+                }
+            }
+
+            const double naiveMedian =
+                median(naiveTimes);
+
+            const double kmpMedian =
+                median(kmpTimes);
+
+            // Count character comparisons separately.
+            const auto naiveStats =
+                naiveSearchWithStats(text, pattern);
+
+            const auto kmpStats =
+                kmpSearchWithStats(text, pattern);
+
+            if (naiveStats.matches != kmpStats.matches) {
+                throw std::runtime_error(
+                    "Instrumented searches disagree"
+                );
+            }
+
+            csv << n << ','
+                << patternLength << ','
+                << inputId << ','
+                << naiveMedian << ','
+                << kmpMedian << ','
+                << naiveStats.comparisons << ','
+                << kmpStats.comparisons << '\n';
+
+            std::cout
+                << "Random n = " << n
+                << " | input " << inputId + 1
+                << "/" << inputCount
+                << " | naive = " << naiveMedian << " us"
+                << " | KMP = " << kmpMedian << " us\n";
         }
-
-        const double naiveMedian = median(naiveTimes);
-        const double kmpMedian = median(kmpTimes);
-
-        csv << n << ','
-            << patternLength << ','
-            << naiveMedian << ','
-            << kmpMedian << '\n';
-
-        std::cout << "Random n = " << n
-                  << " | naive = " << naiveMedian << " us"
-                  << " | KMP = " << kmpMedian << " us\n";
     }
 
-    std::cout << "Results saved to benchmarks/random_results.csv\n";
+    std::cout
+        << "Results saved to benchmarks/random_results.csv\n";
 }
 
 // Experiment 2: Adversarial text, fixed pattern length.
