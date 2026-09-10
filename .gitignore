@@ -1,0 +1,12 @@
+# Compiled executables
+*.exe
+
+# Object files
+*.obj
+
+# Visual Studio build files
+*.pdb
+*.ilk
+
+# Other temporary build output
+*.out
